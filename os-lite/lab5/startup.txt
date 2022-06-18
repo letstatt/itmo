@@ -1,0 +1,15 @@
+общий объем оперативной памяти: 809 МБ
+объем раздела подкачки: 819 МБ
+размер страницы виртуальной памяти (getconf PAGE_SIZE): 4096 = 4 КБ
+
+Filesystem           Size  Used Avail Use% Mounted on
+devtmpfs             386M     0  386M   0% /dev
+tmpfs                405M     0  405M   0% /dev/shm
+tmpfs                405M  5.6M  400M   2% /run
+tmpfs                405M     0  405M   0% /sys/fs/cgroup
+/dev/mapper/cl-root  6.2G  2.8G  3.5G  45% /
+/dev/sda1           1014M  218M  797M  22% /boot
+tmpfs                 81M     0   81M   0% /run/user/0
+
+Объем свободной физической памяти в ненагруженной системе (df -h): 5974 МБ
+Объем свободного пространства в разделе подкачки в ненагруженной системе: 819 МБ

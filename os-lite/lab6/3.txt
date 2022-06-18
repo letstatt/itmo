@@ -1,0 +1,9 @@
+sc query type=service > cmp1_.txt
+
+REG add "HKLM\SYSTEM\CurrentControlSet\services\Dnscache" /v Start /t REG_DWORD /d 4 /f
+
+sc query type=service > cmp2_.txt
+
+fc /l cmp1.txt cmp2.txt > diff.txt
+
+REG add "HKLM\SYSTEM\CurrentControlSet\services\Dnscache" /v Start /t REG_DWORD /d 2 /f

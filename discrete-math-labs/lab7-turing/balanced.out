@@ -1,0 +1,26 @@
+start: HEAD
+accept: AC
+reject: RE
+blank: *
+
+HEAD ( -> START ( ^
+HEAD ) -> START ) ^
+HEAD * -> AC * ^
+
+START ( -> START ( >
+START ) -> MATCH @ <
+START @ -> START @ >
+START * -> CHECK * <
+
+MATCH ( -> BEGIN @ <
+MATCH @ -> MATCH @ <
+MATCH * -> RE * ^
+
+BEGIN ( -> BEGIN ( <
+BEGIN ) -> BEGIN ) <
+BEGIN @ -> BEGIN @ <
+BEGIN * -> START * >
+
+CHECK ( -> RE ( ^
+CHECK @ -> CHECK @ <
+CHECK * -> AC * ^

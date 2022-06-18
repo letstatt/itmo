@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Created-By: 17.0.2 (Oracle Corporation)
+Main-Class: info.kgeorgiy.ja.yakupov.implementor.Implementor
+Class-Path: ..\..\java-advanced-2022\artifacts\info.kgeorgiy.java.advanced.implementor.jar

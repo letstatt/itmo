@@ -1,0 +1,8 @@
+service: openssh
+status: running
+
+service: dnscache
+status: stopped
+
+service: windows audio
+status: running

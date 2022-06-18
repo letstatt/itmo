@@ -1,0 +1,19 @@
+   1568 root      20   0   47704  37888   2788 R  99.9   4.6   0:00.68 mem.bash
+   1568 root      20   0  110404 100720   2788 R  99.9  12.2   0:01.92 mem.bash
+   1568 root      20   0  172444 162760   2788 R  93.3  19.6   0:03.12 mem.bash
+   1568 root      20   0  235804 225856   2788 R  93.3  27.3   0:04.34 mem.bash
+   1568 root      20   0  299560 289744   2788 R  99.9  35.0   0:05.58 mem.bash
+   1568 root      20   0  376648 366524   2488 R  93.8  44.2   0:07.05 mem.bash
+   1568 root      20   0  441724 431732   2488 R  77.8  52.1   0:08.28 mem.bash
+   1568 root      20   0  518548 508552   2484 R  66.7  61.4   0:09.72 mem.bash
+   1568 root      20   0  621240 564692   2300 R  66.7  68.2   0:11.66 mem.bash
+   1568 root      20   0  747804 584784   2052 R  48.3  70.6   0:14.08 mem.bash
+   1568 root      20   0  848240 596688   2052 R  63.6  72.0   0:15.98 mem.bash
+   1568 root      20   0  912776 603936   2052 R  88.2  72.9   0:17.20 mem.bash
+   1568 root      20   0  975860 609064   2052 R  76.5  73.5   0:18.40 mem.bash
+   1568 root      20   0 1084084 613256   1884 R  50.0  74.0   0:20.46 mem.bash
+   1568 root      20   0 1232428 620524   1620 R  43.8  74.9   0:23.32 mem.bash
+   1568 root      20   0 1324680 620008   1620 R  63.6  74.8   0:25.08 mem.bash
+   1568 root      20   0 1396080 623776   1596 R  68.4  75.3   0:26.43 mem.bash
+[  476.734275] Out of memory: Killed process 1568 (mem.bash) total-vm:1436988kB, anon-rss:662380kB, file-rss:0kB, shmem-rss:0kB, UID:0 pgtables:2856kB oom_score_adj:0
+[  476.815140] oom_reaper: reaped process 1568 (mem.bash), now anon-rss:0kB, file-rss:0kB, shmem-rss:0kB

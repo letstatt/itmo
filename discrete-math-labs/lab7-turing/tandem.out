@@ -1,0 +1,58 @@
+start: HEAD
+accept: AC
+reject: RE
+blank: *
+
+HEAD 0 -> ODD 0 >
+HEAD 1 -> ODD 1 >
+
+ODD 0 -> EVEN 0 >
+ODD 1 -> EVEN 1 >
+ODD * -> RE * ^
+
+EVEN 0 -> ODD 0 >
+EVEN 1 -> ODD 1 >
+EVEN * -> ENCODE_R * <
+
+ENCODE_R 0 -> TO_LEFT C <
+ENCODE_R 1 -> TO_LEFT D <
+
+TO_LEFT 0 -> TO_LEFT 0 <
+TO_LEFT 1 -> TO_LEFT 1 <
+TO_LEFT * -> ENCODE_L * >
+TO_LEFT A -> ENCODE_L A >
+TO_LEFT B -> ENCODE_L B >
+
+ENCODE_L 0 -> TO_RIGHT A >
+ENCODE_L 1 -> TO_RIGHT B >
+
+TO_RIGHT 0 -> TO_RIGHT 0 >
+TO_RIGHT 1 -> TO_RIGHT 1 >
+TO_RIGHT C -> CHECK C <
+TO_RIGHT D -> CHECK D <
+
+CHECK 0 -> TO_LEFT C <
+CHECK 1 -> TO_LEFT D <
+CHECK A -> CHECK A >
+CHECK B -> CHECK B >
+CHECK C -> CHECK_C @ <
+CHECK D -> CHECK_D @ <
+CHECK @ -> CHECK @ >
+CHECK * -> AC * ^
+
+CHECK_C A -> CHECK_C A <
+CHECK_C B -> CHECK_C B <
+CHECK_C @ -> CHECK_C @ <
+CHECK_C * -> CHECK_C2 * >
+
+CHECK_C2 A -> CHECK * >
+CHECK_C2 B -> RE B ^
+
+CHECK_D A -> CHECK_D A <
+CHECK_D B -> CHECK_D B <
+CHECK_D @ -> CHECK_D @ <
+CHECK_D * -> CHECK_D2 * >
+
+CHECK_D2 A -> RE A ^
+CHECK_D2 B -> CHECK * >
+

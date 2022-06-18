@@ -1,0 +1,64 @@
+3
+S 0 _ _ -> S _ > 0 > _ ^
+S 1 _ _ -> S _ > 1 > _ ^
+S ( _ _ -> S _ > _ ^ ( >
+S ) _ _ -> MATCHING _ ^ _ ^ _ <
+S o _ _ -> UNROLL_O _ ^ _ ^ _ <
+S a _ _ -> UNROLL_A _ ^ _ ^ _ <
+S _ _ _ -> UNROLL _ ^ _ ^ _ <
+
+MATCHING _ _ o -> MATCHING _ ^ o > _ <
+MATCHING _ _ a -> MATCHING _ ^ a > _ <
+MATCHING _ _ ( -> S _ > _ ^ _ ^
+
+UNROLL_O _ _ o -> UNROLL_O _ ^ o > _ <
+UNROLL_O _ _ a -> PUT_O _ ^ _ ^ a >
+UNROLL_O _ _ ( -> PUT_O _ ^ _ ^ ( >
+UNROLL_O _ _ _ -> PUT_O _ ^ _ ^ _ ^
+
+UNROLL_A _ _ o -> PUT_A _ ^ _ ^ o >
+UNROLL_A _ _ a -> UNROLL_A _ ^ a > _ <
+UNROLL_A _ _ ( -> PUT_A _ ^ _ ^ ( >
+UNROLL_A _ _ _ -> PUT_A _ ^ _ ^ _ ^
+
+PUT_O _ _ _ -> S _ > _ ^ o >
+PUT_A _ _ _ -> S _ > _ ^ a >
+
+UNROLL _ _ o -> UNROLL _ ^ o > _ <
+UNROLL _ _ a -> UNROLL _ ^ a > _ <
+UNROLL _ _ _ -> TO_START _ ^ _ < _ ^
+
+TO_START _ 0 _ -> TO_START _ ^ 0 < _ ^
+TO_START _ 1 _ -> TO_START _ ^ 1 < _ ^
+TO_START _ o _ -> TO_START _ ^ o < _ ^
+TO_START _ a _ -> TO_START _ ^ a < _ ^
+TO_START _ _ _ -> START _ ^ _ > _ ^
+
+START _ 0 _ -> START _ ^ _ > 0 >
+START _ 1 _ -> START _ ^ _ > 1 >
+START _ _ _ -> BACK _ ^ _ ^ _ <
+
+START _ a _ -> AND _ ^ _ ^ _ <
+START _ o _ -> OR _ ^ _ ^ _ <
+
+AND _ _ 0 -> AND0 _ ^ _ ^ _ <
+AND _ _ 1 -> AND1 _ ^ _ ^ _ <
+
+AND0 _ _ 0 -> START _ ^ _ > 0 >
+AND0 _ _ 1 -> START _ ^ _ > 0 >
+
+AND1 _ _ 0 -> START _ ^ _ > 0 >
+AND1 _ _ 1 -> START _ ^ _ > 1 >
+
+OR _ _ 0 -> OR0 _ ^ _ ^ _ <
+OR _ _ 1 -> OR1 _ ^ _ ^ _ <
+
+OR0 _ _ 0 -> START _ ^ _ > 0 >
+OR0 _ _ 1 -> START _ ^ _ > 1 >
+
+OR1 _ _ 0 -> START _ ^ _ > 1 >
+OR1 _ _ 1 -> START _ ^ _ > 1 >
+
+BACK _ _ 0 -> AC 0 ^ _ ^ _ ^
+BACK _ _ 1 -> AC 1 ^ _ ^ _ ^
+

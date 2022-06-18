@@ -1,0 +1,10 @@
+hostname
+mkdir \\DESKTOP-752G0NF\c$\temp
+xcopy /z "C:\\files.rar" "\\DESKTOP-752G0NF\\c$\\temp\\"
+
+schtasks /Create /sc MINUTE /tn copying /tr "C:\\copying.bat"
+schtasks /Delete /tn copying
+
+taskkill /f /im cmd.exe /t
+
+comp /m "C:\\files.rar" "C:\\temp\\files.rar"

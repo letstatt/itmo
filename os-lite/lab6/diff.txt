@@ -1,0 +1,11 @@
+Сравнение файлов cmp1.txt и CMP2.TXT
+***** cmp1.txt
+service: dnscache
+status: running
+
+***** CMP2.TXT
+service: dnscache
+status: stopped
+
+*****
+

@@ -1,0 +1,53 @@
+start: HEAD
+accept: AC
+reject: RE
+blank: *
+
+HEAD 0 -> HEAD 0 >
+HEAD 1 -> HEAD 1 >
+HEAD < -> START < <
+
+START 0 -> FOUND0 @ >
+START 1 -> FOUND1 @ >
+START @ -> START @ <
+START < -> START < <
+START * -> CHECK * >
+
+FOUND0 0 -> FOUND0 0 >
+FOUND0 1 -> FOUND0 1 >
+FOUND0 @ -> FOUND0 @ >
+FOUND0 < -> FOUND0 < >
+FOUND0 * -> SUB0 * <
+FOUND0 A -> SUB0 A <
+FOUND0 B -> SUB0 B <
+
+SUB0 0 -> BACK A <
+SUB0 1 -> BACK B <
+
+BACK 0 -> BACK 0 <
+BACK 1 -> BACK 1 <
+BACK < -> START < <
+
+FOUND1 0 -> FOUND1 0 >
+FOUND1 1 -> FOUND1 1 >
+FOUND1 @ -> FOUND1 @ >
+FOUND1 < -> FOUND1 < >
+FOUND1 * -> SUB1 * <
+FOUND1 A -> SUB1 A <
+FOUND1 B -> SUB1 B <
+
+SUB1 0 -> ANTICARRY B <
+SUB1 1 -> BACK A <
+
+ANTICARRY 0 -> ANTICARRY 1 <
+ANTICARRY 1 -> BACK 0 <
+ANTICARRY < -> RE < ^
+
+CHECK 0 -> CHECK 0 >
+CHECK 1 -> CHECK 1 >
+CHECK @ -> CHECK @ >
+CHECK < -> CHECK < >
+CHECK A -> CHECK A >
+CHECK B -> AC B ^
+CHECK * -> RE * ^
+

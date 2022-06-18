@@ -1,0 +1,1 @@
+call rmiregistry.exe -J--class-path=..\..\..\..\..\..\..\bank-build 44501

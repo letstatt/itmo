@@ -1,0 +1,11 @@
+mkdir C:\\lab6
+systeminfo > C:\\lab6\systeminfo.txt
+wmic diskdrive get model,name,size > C:\\lab6\wmic.txt
+
+mkdir test
+xcopy C:\\lab6 test
+cd test
+
+for /f "usebackq" %a in (`dir /b .`) do type %a >> dir.txt
+
+for /f "usebackq skip=1" %a in (`dir /b /O-D /A-D .`) do erase %a
