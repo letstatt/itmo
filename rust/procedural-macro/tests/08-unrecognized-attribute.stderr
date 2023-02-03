@@ -1,0 +1,5 @@
+error: expected `builder(each = "...")`
+  --> tests/08-unrecognized-attribute.rs:19:7
+   |
+19 |     #[builder(eac = "arg")]
+   |       ^^^^^^^^^^^^^^^^^^^^
