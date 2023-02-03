@@ -1,0 +1,34 @@
+cabal-version:      2.4
+name:               hw3
+version:            0.1.0.0
+
+author:             letstatt
+
+executable hw3
+    main-is:          Main.hs
+    build-depends:    base >= 4.7 && <5, haskeline, repline, containers, hw3, prettyprinter-ansi-terminal
+    hs-source-dirs:   app
+    default-language: Haskell2010
+
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     HW3.Base, HW3.Parser, HW3.Pretty, HW3.Evaluator, HW3.Action
+  ghc-options:         -Wall
+  build-depends:
+    base >= 4.7 && < 5,
+    megaparsec,
+    prettyprinter,
+    prettyprinter-ansi-terminal,
+    scientific,
+    parser-combinators,
+    text,
+    transformers,
+    containers,
+    bytestring,
+    zlib,
+    serialise,
+    directory,
+    time,
+    random
+  default-language:    Haskell2010

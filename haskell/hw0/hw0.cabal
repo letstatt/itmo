@@ -1,0 +1,19 @@
+cabal-version:      2.0
+name:               hw0
+version:            0.1.0.0
+
+author:             letstatt
+build-type:     Simple
+
+executable hw0
+    main-is:          Main.hs
+    build-depends:    base ^>=4.14.3.0
+    hs-source-dirs:   app
+    default-language: Haskell2010
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     HW0.T1, HW0.T2, HW0.T3, HW0.T4, HW0.T5, HW0.T6
+  ghc-options:         -Wall
+  build-depends:       base >= 4.9 && <5
+  default-language:    Haskell2010
