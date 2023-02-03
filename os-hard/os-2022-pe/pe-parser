@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+
+import sys
+
+_debug = False
+
+
+def log(*args, **kwargs):
+    if _debug:
+        print(*args, **kwargs)
+
+
+# PARSER ROUTINES
+
+
+def bytes_to_int(bytes):
+    return sum(int(b) * 0x100**i for i, b in enumerate(bytes))  # little endian
+
+
+def read(c, offset, length):
+    return c[offset : offset + length]
+
+
+def read_dword(c, offset):
+    return bytes_to_int(c[offset : offset + 4])
+
+
+def read_qword(c, offset):
+    return bytes_to_int(c[offset : offset + 8])
+
+
+def read_cstring(c, offset):
+    s = b""
+    i = offset
+    while c[i] != 0:
+        s += c[i : i + 1]
+        i += 1
+    return s.decode("utf-8")
+
+
+# PARSE PRIMARY HEADERS
+
+
+def parse_primary_headers(filepath):
+    c = None
+    with open(filepath, "rb") as f:
+        c = f.read()
+
+    msdos_header = c[:2]
+    if msdos_header != b"MZ":
+        log("invalid DOS MZ header")
+        return None
+
+    pe_header_offset = read_dword(c, 0x3C)
+    pe_header = read(c, pe_header_offset, 4)
+
+    if pe_header != b"PE\0\0":
+        log("invalid PE header", pe_header)
+        return None
+
+    return c, {
+        "signature_offset": pe_header_offset,
+        "file_header_offset": pe_header_offset + 4,
+        "optional_header_offset": pe_header_offset + 4 + 20,
+    }
+
+
+# PARSE IMAGE_SECTION_HEADER
+
+
+def parse_section_header(c, offset):
+    return {
+        "virtual_size": read_dword(c, offset + 0x8),
+        "rva": read_dword(c, offset + 0xC),
+        "raw": read_dword(c, offset + 0x14),
+    }
+
+
+# PARSE IMAGE_IMPORT_BY_NAME
+
+
+def parse_import_by_name(c, offset):
+    return read_cstring(c, offset + 2)
+
+
+# PE-PARSER
+
+
+def is_pe(filepath):
+    return False if parse_primary_headers(filepath) is None else True
+
+
+def import_functions(filepath):
+    p = parse_primary_headers(filepath)
+    if p is None:
+        return
+    c, headers = p
+
+    oh_offset = headers["optional_header_offset"]
+
+    number_of_rva_and_sizes = read_dword(c, oh_offset + 0x6C)
+
+    log("optional header offset", hex(oh_offset))
+    log("number of rva and sizes", number_of_rva_and_sizes)
+
+    if number_of_rva_and_sizes < 2:
+        log('no "import table" image directory found')
+        return
+
+    import_table_offset = oh_offset + 0x78
+    import_table_rva = read_dword(c, import_table_offset)
+    size = read_dword(c, import_table_offset + 4)
+
+    log("import table offset", hex(import_table_offset))
+    log("import table RVA", hex(import_table_rva))
+    log("import table size", hex(size))
+
+    image_directories_offset = oh_offset + 0x70
+    image_directory_size = 8
+
+    sections_offset = (
+        image_directories_offset + image_directory_size * number_of_rva_and_sizes
+    )
+    section_size = 40
+
+    log("sections offset", hex(sections_offset))
+
+    file_header_offset = headers["file_header_offset"]
+    number_of_sections = read_dword(c, file_header_offset + 0x2)
+
+    log("number of sections", number_of_sections)
+
+    import_table_section = None
+
+    for i in range(number_of_sections):
+        section_offset = sections_offset + i * section_size
+        section = parse_section_header(c, section_offset)
+        if (
+            section["rva"]
+            <= import_table_rva
+            <= section["rva"] + section["virtual_size"]
+        ):
+            import_table_section = section
+            break
+
+    if import_table_section is None:
+        log('no "import table" section found')
+        return
+
+    log("import table section", import_table_section)
+
+    import_raw = (
+        import_table_section["raw"] + import_table_rva - import_table_section["rva"]
+    )
+
+    log("import table file pointer", hex(import_raw))
+
+    imports = dict()
+    i = 0
+
+    while True:
+        offset = import_raw + i * 20
+        table = read(c, offset, 20)
+        if table == b"\0" * 20:
+            break
+        else:
+            addr = (
+                import_table_section["raw"]
+                + read_dword(table, 0xC)
+                - import_table_section["rva"]
+            )
+            lib = read_cstring(c, addr)
+            imports[lib] = offset
+            i += 1
+
+    log("imports addresses", [hex(i) for i in imports.values()])
+
+    for name, import_table_addr in imports.items():
+        print(name)
+        ILT_rva = read_dword(c, import_table_addr)
+        ILT_offset = import_table_section["raw"] + ILT_rva - import_table_section["rva"]
+        j = 0
+        while True:
+            offset = ILT_offset + j * 8
+            table = read(c, offset, 8)
+            if table == b"\0" * 8:
+                break
+            else:
+                image_import_by_name_ = read_qword(c, offset)
+                if image_import_by_name_ & 0x8000000000000000:
+                    log("high bit set, skip")
+                    j += 1
+                    continue
+                image_import_by_name_offset = read_dword(c, offset)
+                image_import_by_name_addr = (
+                    ILT_offset + image_import_by_name_offset - ILT_rva
+                )
+                func = parse_import_by_name(c, image_import_by_name_addr)
+                print("    " + func)
+                j += 1
+
+
+def export_functions(filepath):
+    p = parse_primary_headers(filepath)
+    if p is None:
+        return
+    c, headers = p
+
+    oh_offset = headers["optional_header_offset"]
+
+    number_of_rva_and_sizes = read_dword(c, oh_offset + 0x6C)
+
+    log("optional header offset", hex(oh_offset))
+    log("number of rva and sizes", number_of_rva_and_sizes)
+
+    if number_of_rva_and_sizes < 2:
+        log('no "export table" image directory found')
+        return
+
+    export_table_offset = oh_offset + 0x70
+    export_table_rva = read_dword(c, export_table_offset)
+    size = read_dword(c, export_table_offset + 4)
+
+    log("export table offset", hex(export_table_offset))
+    log("export table RVA", hex(export_table_rva))
+    log("export table size", hex(size))
+
+    image_directories_offset = oh_offset + 0x70
+    image_directory_size = 8
+
+    sections_offset = (
+        image_directories_offset + image_directory_size * number_of_rva_and_sizes
+    )
+    section_size = 40
+
+    log("sections offset", hex(sections_offset))
+
+    file_header_offset = headers["file_header_offset"]
+    number_of_sections = read_dword(c, file_header_offset + 0x2)
+
+    log("number of sections", number_of_sections)
+
+    export_table_section = None
+
+    for i in range(number_of_sections):
+        section_offset = sections_offset + i * section_size
+        section = parse_section_header(c, section_offset)
+        if (
+            section["rva"]
+            <= export_table_rva
+            <= section["rva"] + section["virtual_size"]
+        ):
+            export_table_section = section
+            break
+
+    if export_table_section is None:
+        log('no "export table" section found')
+        return
+
+    log("export table section", export_table_section)
+
+    export_raw = (
+        export_table_section["raw"] + export_table_rva - export_table_section["rva"]
+    )
+
+    log("export directory table file pointer", hex(export_raw))
+
+    number_of_name_pointers = read_dword(c, export_raw + 0x18)
+    name_pointer_rva = read_dword(c, export_raw + 0x20)
+
+    log("number of exported functions", number_of_name_pointers)
+    log("name_pointer_rva", name_pointer_rva)
+
+    name_pointer_table = (
+        export_table_section["raw"] + name_pointer_rva - export_table_section["rva"]
+    )
+
+    log("export name pointer table file pointer", hex(name_pointer_table))
+
+    export_name_tables = []
+
+    for i in range(number_of_name_pointers):
+        export_name_tables.append(
+            name_pointer_table
+            + read_dword(c, name_pointer_table + i * 4)
+            - name_pointer_rva
+        )
+
+    log("export name tables:", [hex(i) for i in export_name_tables])
+
+    for addr in export_name_tables:
+        print(read_cstring(c, addr))
+
+
+def usage():
+    print(
+        """Usage:
+    ./pe-parser is-pe filepath"""
+    )
+
+
+def main():
+    argv = sys.argv
+    if len(argv) < 2:
+        usage()
+    elif argv[1] == "is-pe":
+        if len(argv) != 3:
+            usage()
+        status = is_pe(argv[2])
+        if status:
+            print("PE")
+            exit(0)
+        else:
+            print("Not PE")
+            exit(1)
+    elif argv[1] == "import-functions":
+        if len(argv) != 3:
+            usage()
+        import_functions(argv[2])
+    elif argv[1] == "export-functions":
+        if len(argv) != 3:
+            usage()
+        export_functions(argv[2])
+    else:
+        usage()
+
+
+if __name__ == "__main__":
+    main()
