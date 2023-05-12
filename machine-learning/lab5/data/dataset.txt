@@ -1,0 +1,2 @@
+Download csv-table (winequality-red.csv) from this site:
+https://www.kaggle.com/datasets/uciml/red-wine-quality-cortez-et-al-2009
