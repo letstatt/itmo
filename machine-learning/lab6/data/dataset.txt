@@ -1,0 +1,2 @@
+Download SMS.tsv from this site:
+https://archive.ics.uci.edu/ml/datasets/sms+spam+collection
