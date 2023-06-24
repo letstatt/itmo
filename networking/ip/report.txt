@@ -1,0 +1,147 @@
+Выполнение заданий происходило в WSL2 на дистрибутиве Ubuntu 22.04 LTS.
+
+1. IP-адресация
+
+Установите одному из ваших устройств адрес 10.123.0.23, маску сети 255.255.255.0, а второму устройству - адрес 10.123.0.24 с такой же маской.
+
+dev1$ ip address add 10.123.0.23/24 dev tap0
+dev2$ ip address add 10.123.0.24/24 dev tap1
+
+Давайте отправим первый пакет:
+
+root@wsl:/mnt/c/Users/lastutf445# ping 10.123.0.24
+PING 10.123.0.24 (10.123.0.24) 56(84) bytes of data.
+64 bytes from 10.123.0.24: icmp_seq=1 ttl=64 time=0.022 ms
+64 bytes from 10.123.0.24: icmp_seq=2 ttl=64 time=0.052 ms
+64 bytes from 10.123.0.24: icmp_seq=3 ttl=64 time=0.042 ms
+64 bytes from 10.123.0.24: icmp_seq=4 ttl=64 time=0.033 ms
+^C
+--- 10.123.0.24 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3155ms
+rtt min/avg/max/mdev = 0.022/0.037/0.052/0.011 ms
+
+Наоборот тоже работает:
+
+DESKTOP-XXXXXXX:/mnt/c/Users/lastutf445# ping 10.123.0.23
+PING 10.123.0.23 (10.123.0.23): 56 data bytes
+64 bytes from 10.123.0.23: seq=0 ttl=64 time=0.058 ms
+64 bytes from 10.123.0.23: seq=1 ttl=64 time=0.087 ms
+64 bytes from 10.123.0.23: seq=2 ttl=64 time=0.086 ms
+q64 bytes from 10.123.0.23: seq=3 ttl=64 time=0.070 ms
+^C
+--- 10.123.0.23 ping statistics ---
+4 packets transmitted, 4 packets received, 0% packet loss
+round-trip min/avg/max = 0.058/0.075/0.087 ms
+
+Теперь, когда всё работает, самое время попытаться всё сломать. Сначала удалите эти адреса:
+
+dev1$ ip address del 10.123.0.23/24 dev tap0
+dev2$ ip address del 10.123.0.24/24 dev tap1
+
+Присвойте устройствам два случайных адреса из выбранной сети:
+
+dev1$ ip address add 6.6.6.5/24 dev tap0
+dev2$ ip address add 6.6.6.6/24 dev tap1
+
+Убедитесь, что устройства всё ещё «видят» друг друга:
+
+<ну пингуются короче>
+
+Попробуйте установить одному устройству адрес 10.123.0.17/28, а второму — 10.123.0.33/28. «Видят» ли устройства друг друга? Понимаете ли вы, почему?
+
+dev1$ ip address change 10.123.0.17/28 dev tap0
+dev2$ ip address change 10.123.0.33/28 dev tap1
+
+Судя по пингу они друг друга видят. Давайте проверим находятся ли они в одной сети:
+
+octet = 28 - 8 * 3 = 4
+dev1# 17 & 4 = 0
+dev2# 33 & 4 = 0
+
+Да, в одной сети, значит они должны друг друга видеть.
+
+Определите без практического эксперимента ответ ещё для пары случаев.
+
+192.168.77.5/24 и 192.168.77.6/29
+
+77 & 255 = 77, 77 & 255 = 77, ok
+5 & 248 = 0, 6 & 248 = 0, ok
+ans: смогут пинговать друг друга
+
+172.19.21.5/23 и 172.19.20.199/24
+
+21 & 254 = 20, 20 & 254 = 20, ok
+21 & 255 = 21, 20 & 255 = 20, not ok
+ans: второй не сможет пинговать первого
+
+2. IPv4
+
+Установите одному из своих устройств адрес 10.152.190.226 и отправьте пинг на 10.152.190.185/24.
+
+dev1$ ip address add 10.152.190.226/24 dev tap0
+
+root@wsl:/mnt/c/Users/lastutf445# ping 10.152.190.185
+PING 10.152.190.185 (10.152.190.185) 56(84) bytes of data.
+64 bytes from 10.152.190.185: icmp_seq=1 ttl=64 time=99.5 ms
+64 bytes from 10.152.190.185: icmp_seq=2 ttl=64 time=61.2 ms
+64 bytes from 10.152.190.185: icmp_seq=3 ttl=64 time=59.1 ms
+^C
+
+Чтобы получить ещё 2 балла, определите MAC-адрес этого узла.
+
+root@wsl:/mnt/c/Users/lastutf445# sudo apt install net-tools
+root@wsl:/mnt/c/Users/lastutf445# arp -a
+? (10.152.190.185) at 02:04:aa:79:10:b1 [ether] on tap0
+
+ответ: 02:04:aa:79:10:b1
+
+3. IPv6
+
+Узнайте link-local-адреса обоих ваших устройств. Отправьте пинг с одного устройства на другое.
+
+<посмотрел адреса в ip address, машины пингуются>
+
+В вашей сети находится устройство с MAC-адресом 02-D3-87-2D-26-59. Используя примеры и RFC, посчитайте его link-local-адрес. Проверьте свою догадку, отправив пинг.
+
+Используем http://silmor.de/ipaddrcalc.html#ip6.
+
+ipv6 addr: FE80::D3:87FF:FE2D:2659
+
+DESKTOP-XXXXXXX:/mnt/c/Users/lastutf445# ping -6 -I tap1 FE80::D3:87FF:FE2D:2659
+PING FE80::D3:87FF:FE2D:2659 (fe80::d3:87ff:fe2d:2659): 56 data bytes
+64 bytes from fe80::d3:87ff:fe2d:2659: seq=0 ttl=64 time=125.142 ms
+64 bytes from fe80::d3:87ff:fe2d:2659: seq=1 ttl=64 time=58.868 ms
+
+На этот раз ваш адрес fd33:9174:d054:e5ea:feeb:4f46:ca32:53b6, а маска подсети — /64. Назначьте его одному из ваших устройств.
+
+dev1$ ip address add fd33:9174:d054:e5ea:feeb:4f46:ca32:53b6/64 dev tap0
+
+После настройки сети попробуйте пропинговать узел fd33:9174:d054:e5ea:678:fd4c:884a:fb49 и определить его MAC-адрес.
+
+ping -6 -I tap0 fd33:9174:d054:e5ea:678:fd4c:884a:fb49
+
+root@wsl:/mnt/c/Users/lastutf445# ip -6 neigh show
+fd33:9174:d054:e5ea:678:fd4c:884a:fb49 dev tap0 lladdr 02:0c:52:91:bb:0f router STALE
+
+ответ: 02:0c:52:91:bb:0f
+
+4. MTU
+
+import subprocess
+
+pattern = "ping -6 -I tap0 fd33:9174:d054:e5ea:678:fd4c:884a:fb49 -s {mtu} -W 2 -c 1"
+
+mx_mtu = 0
+
+for i in range(100, 1500):
+    print("iteration", i)
+    p = pattern.format(mtu=i)
+    proc = subprocess.run(p, shell=True, capture_output=True)
+    
+    if b"icmp_seq" in proc.stdout:
+        print("OK")
+        mx_mtu = i
+
+print("ans", mx_mtu)
+
+ответ: 995 + заголовки = 995 + 40 + 8 = 1043

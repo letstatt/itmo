@@ -1,0 +1,101 @@
+0) Так как я выполняю все задания в WSL, необходимо было пересобрать ядро с +1 включенной опцией для одного из заданий (netfilter по строке).
+
+Как пересобирать ядро:
+https://gist.github.com/oleksis/eb6d2f1cd2a6946faefb139aa0e38c35
+
+Какую функцию в билдконфиге нужно включить:
+CONFIG_NETFILTER_XT_MATCH_STRING=y
+
+1) подключимся с двух дистрибутивов WSL (на всякий случай) к двум сетям из задания. WSL предоставляет дистрибутивам такой сетевой адаптер, интерфейсы которого видны для всех дистрибутивов сразу. В первом у меня интерфейс получился tap0, а во втором - tap1.
+
+для первой тасочки нужно просто выставить правила ipv4.
+
+1# ip addr add 10.67.150.1/24 dev tap0
+2# ip addr add 10.233.144.1/24 dev tap1
+
+2) включаем форвардинг пакетов
+
+# sysctl net.ipv4.ip_forward=1
+
+получаем халявные два балла
+
+3) Запрет пересылки TCP пакетов из B в A
+
+(хотел запретить пересылку tcp из -i tap1 в -o tap0, но так почему-то не сработало)
+
+# iptables -A FORWARD -s 10.233.144.0/24 -d 10.67.150.0/24 -p tcp -j DROP
+
+4) Ограничение UDP
+
+Сначала откроем два порта, которые просят - 3001, 2026
+
+# iptables -A FORWARD -d 10.233.144.136 -p udp --dport 3001 -j ACCEPT
+
+# iptables -A FORWARD -d 10.233.144.136 -p udp --dport 2026 -j ACCEPT
+
+Теперь запретим весь остальной форвардинг для уязвимого устройства
+
+# iptables -A FORWARD -d 10.233.144.136 -p udp -j DROP
+
+# iptables --list
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination
+DROP       tcp  --  10.233.144.0/24      10.67.150.0/24
+ACCEPT     udp  --  anywhere             10.233.144.136       udp dpt:3001
+ACCEPT     udp  --  anywhere             10.233.144.136       udp dpt:2026
+DROP       udp  --  anywhere             10.233.144.136
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+5) Фильтр содержимого.
+
+# iptables -A FORWARD -i tap0 -o tap1 -p tcp -m string --algo kmp --string "results-58" -j DROP
+
+6) ЧАСТЬ 3. NAT
+
+# iptables -t nat --list
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+
+Вроде как адреса роутера должны совпадать с подсетью, для которой мы определяем правило, но сработало после нескольких попыток почему-то именно так. То ли я неправильно понял как работает POSTROUTING, то ли в задании есть бага.
+
+# iptables -t nat -A POSTROUTING -s 10.233.144.0/24 -j SNAT --to-source 10.67.150.1
+
+# iptables -t nat -A POSTROUTING -s 10.67.150.0/24 -j SNAT --to-source 10.233.144.1
+
+7) Подменяем TTL для ICMP и эмулируем проблемы сети
+
+Снова так и не понял, почему пришлось указывать разные ip и подсетку, но тыком сработало, да и ладно.
+
+# iptables -t mangle -A POSTROUTING -s 10.67.150.0/24 -p icmp -j TTL --ttl-set 47
+
+# iptables -A FORWARD -p icmp -s 10.233.144.0/24 -m statistic --mode random --probability 0.25 -j DROP
+
+8) Открываем доступ к (crossed) https://neerc.ifmo.ru/lgd.pdf
+
+к nerc.itmo.ru.
+
+Я в каком-то задании флашил всю таблицу в какой-то момент, поэтому сделаем последовательность вчистую. Я подозреваю что тут много лишних правил, но как я ни крутился сработало только так (мб снова из-за POSTROUTING). Без половины правил пакеты шли в интернет и обратно (смотрел в wireshark), но именно обратно сквозь туннель в tap0 они не проходили. firewall windows был отключен.
+
+# iptables -P FORWARD DROP
+# iptables -A FORWARD -p tcp -s 10.67.150.0/24 -d 10.233.144.0/24 -j ACCEPT
+# iptables -A FORWARD -p tcp -s 10.233.144.0/24 -d 10.67.150.0/24 -j ACCEPT
+# iptables -A FORWARD -p tcp -i tap0 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+# iptables -A FORWARD -p tcp -i eth0 -o tap0 -d 77.234.215.132 -j ACCEPT
+# iptables -A FORWARD -p tcp -i eth0 -o tap0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+# iptables -A FORWARD -p tcp -i tap0 -o eth0 -d 77.234.215.132 -j ACCEPT
+# iptables -t nat -A POSTROUTING -o tap0 -j MASQUERADE
+# iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE

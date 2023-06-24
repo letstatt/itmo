@@ -1,0 +1,64 @@
+Запустите собственный DHCP-сервер, который будет выдавать клиентам на интерфейсе VPN адреса из сети 10.4.86.0/24. Вы можете реализовать его самостоятельно или взять любой готовый.
+
+Поставим dhcp-сервер на линукс.
+
+apt-get install isc-dhcp-server
+
+Теперь его надо сконфигурировать. В задании нас просят потрогать ipv4 и ipv6. Сначала настроим ipv4.
+
+# /etc/dhcp/dhcpd.conf
+
+subnet 10.4.86.0 netmask 255.255.255.0 {
+  range 10.4.86.10 10.4.86.100;
+  option routers 10.4.86.1;
+}
+
+Теперь надо сказать серверу, какой интерфейс слушать.
+
+# /etc/default/isc-dhcp-server
+
+INTERFACESv4="tap0"
+
+Мы - роутер, сами назначаем себе адрес. На самом деле я не уверен в точной надобности именно этой команды, но она мне помогла запустить сервер.
+
+$ ip addr add 10.4.86.1 dev tap0
+
+Запускаем сервис.
+
+$ dhcpd
+
+Ура, ipv4 адрес выдался. Теперь надо чекнуть mac-адрес, пока не сработали lease'ы.
+
+$ cat /var/lib/dhcp/dhcpd.leases
+
+hardware ethernet 02:5e:b2:8b:de:67;
+
+Ответ: 02:5e:b2:8b:de:67
+
+Теперь займемся ipv6. Я не разобрался с isc-dhcp-server в смысле SLAAC (там были опции связанные с RFC 4941 (бегло показалось, что это связано с SLAAC), но возможно я ошибся просто), поэтому будем использовать более популярный способ для чисто router advertisment.
+
+$ apt install radvd
+$ ip addr add fdb0:44f7:2902:8af8::10/64 dev tap0
+$ sudo sysctl -w net.ipv6.conf.all.forwarding=1
+
+Впишем в /etc/radvd.conf:
+
+interface tap0 {
+    IgnoreIfMissing on;
+    AdvManagedFlag off;
+    AdvReachableTime 0;
+    AdvSendAdvert on;
+    AdvOtherConfigFlag off;
+    prefix fdb0:44f7:2902:8af8::/64 {
+        AdvOnLink on;
+        AdvAutonomous on;
+    };
+};
+
+$ radvd -n
+[May 12 00:05:28] radvd (216): version 2.18 started
+...
+
+Нажимаем кнопку "Проверить".
+
+(я ожидал что мне в консоль напишет, что пришел клиент и мы ему ответили, но ничего не произошло, кроме галочки в задании).

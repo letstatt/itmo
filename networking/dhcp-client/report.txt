@@ -1,0 +1,56 @@
+1. Начнём с простого — просто получите IP-адрес.
+
+При подключении к туннелю у меня появился ipv6 адрес, но не появился ipv4. Чтобы общение моей виртуалки с dhcp сервером началось и не прекращалось я скачал dhcpcd и поставил крутиться в фоне.
+
+Ответ: 10.135.45.2/24
+
+Домен сети узнаем с помощью dhcpcd --dumplease tap0
+
+Ответ: boring-guidance.biz
+
+2. 
+
+Получите SLAAC-адрес.
+
+Ну вроде он и так был, с момента подключения. В задании нужно еще пропинговать сервер без префикса, но префикс - это префикс нашего link local, кажется. Я его подставил и пропинговал.
+
+ping6 -I tap0 fe80::fe:caff:fe32:53b6
+
+Найти адрес сайта.
+
+Информацию про dns-сервер находим из того же dhcpcd --dumplease tap0.
+
+root@wsl:/mnt/c/Users/lastutf445# nslookup udbvv348sexq02c13pgxmu8f.localnetwork  fdcd:b94d:e288:2305:aa79:10b1:57ce:f587
+Server:         fdcd:b94d:e288:2305:aa79:10b1:57ce:f587
+Address:        fdcd:b94d:e288:2305:aa79:10b1:57ce:f587#53
+
+Name:   udbvv348sexq02c13pgxmu8f.localnetwork
+Address: fdca:98be:d321:2281:6:88ff:fe4a:fb49
+
+Отправим самодельный http-хедер по айпи-адресу. Здесь важен host-header, т.к. если напрямую бить курлом по айпишнику, там будет айпишник, а нам нужно там именно доменное имя.
+
+root@wsl:/mnt/c/Users/lastutf445# netcat fdca:98be:d321:2281:6:88ff:fe4a:fb49 9229
+GET / HTTP/1.1
+Host: udbvv348sexq02c13pgxmu8f.localnetwork:9229
+User-Agent: curl/7.81.0
+Accept: */*
+
+HTTP/1.1 200 OK
+content-length: 57
+date: Wed, 03 May 2023 21:19:22 GMT
+
+<body><form method=post><button>Click me!</button></body>
+
+Получили html с кнопочкой, супер. Теперь надо отправить post-запрос на тот же адрес.
+
+root@wsl:/mnt/c/Users/lastutf445# netcat fdca:98be:d321:2281:6:88ff:fe4a:fb49 9229
+POST / HTTP/1.1
+Host: udbvv348sexq02c13pgxmu8f.localnetwork:9229
+User-Agent: curl/7.81.0
+Accept: */*
+
+HTTP/1.1 200 OK
+content-length: 10
+date: Wed, 03 May 2023 21:21:26 GMT
+
+Well done!

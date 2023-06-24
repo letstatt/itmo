@@ -1,0 +1,115 @@
+1) IP-адрес nerc.itmo.ru:
+
+# dig nerc.itmo.ru -> 77.234.215.132
+
+2) Воспользоваться нерекурсивными dns для того же урла:
+
+# dig
+...
+a.root-servers.net.     12790   IN      A       198.41.0.4
+
+# dig @198.41.0.4 ru
+...
+a.dns.ripn.net.         172800  IN      A       193.232.128.6
+
+# dig @193.232.128.6 itmo.ru
+...
+ns.itmo.ru.             345600  IN      A       77.234.194.2
+
+# dig @77.234.194.2 nerc.itmo.ru
+...
+;; ANSWER SECTION:
+nerc.itmo.ru.           7200    IN      A       77.234.215.132
+
+Ответ: a.root-servers.net, a.dns.ripn.net, ns.itmo.ru
+
+3) поднимаем рекурсивный dns-сервер
+
+# sudo apt-get install bind9
+# nano /etc/bind/named.conf.options
+
+options {
+	...
+
+	recursion yes;
+	listen-on { 10.52.1.1; };
+	allow-transfer { none; };
+
+	forwarders {
+			8.8.8.8;
+			8.8.4.4;
+	};
+}
+
+# ip addr add 10.52.1.1/24 dev tap0
+# service named start
+
+4) добавляем запись о зоне
+
+# nano /etc/bind/named.conf.options
+
+zone "localnetwork" {
+        type master;
+        file "/etc/bind/db.localnetwork";
+        allow-query { any; };
+};
+
+# cp /etc/bind/db.empty /etc/bind/db.localnetwork
+# nano /etc/bind/db.localnetwork
+
+$TTL    15
+@       IN      SOA     ns.localnetwork. root.localnetwork. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                          86400 )       ; Negative Cache TTL
+
+@       IN      NS      ns.localnetwork.
+
+ns         IN A 10.52.1.1
+3a02tbtkm5 IN A 10.52.1.217
+3a02tbtkm5 IN AAAA fd44:1337::9c26:a4fb:176c:90b
+
+nameserver'а вообще-то пока нету - он будет дальше в задании, но без него конфиг не проходил валидацию.
+
+# service named restart
+
+5) поддержим почтовый сервер
+
+# nano /etc/bind/db.localnetwork
+
+...
+3a02tbtkm5 IN MX 10 mx.example.org.
+
+# service named restart
+
+6) последние тасочки
+
+# nano /etc/bind/named.conf.options
+
+zone "3a02tbtkm5.localnetwork" {
+        type master;
+        file "/etc/bind/db.localnetwork";
+        allow-query { any; };
+        allow-transfer { 10.52.1.2; };
+};
+
+# nano /etc/bind/db.localnetwork
+
+$TTL    15
+@       IN      SOA     ns.3a02tbtkm5.localnetwork. noreply.3a02tbtkm5.localnetwork. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                          86400 )       ; Negative Cache TTL
+
+3a02tbtkm5.localnetwork.        IN      NS      ns.3a02tbtkm5.localnetwork.
+
+ns.3a02tbtkm5.localnetwork. IN A 10.52.1.1
+3a02tbtkm5.localnetwork. IN A 10.52.1.217
+3a02tbtkm5.localnetwork. IN AAAA fd44:1337::9c26:a4fb:176c:90b
+3a02tbtkm5.localnetwork. IN MX 10 mx.example.org.
+
+4pcs6.3a02tbtkm5.localnetwork. IN AAAA fd44:1337::686:4be7:6611:c78e
